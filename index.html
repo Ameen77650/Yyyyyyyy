@@ -1,0 +1,671 @@
+<!DOCTYPE html>
+<html lang="ar">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>نظام الألعاب المتكامل</title>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-app.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-firestore.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/8.10.0/firebase-auth.js"></script>
+    
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        :root {
+            --primary: #667eea;
+            --secondary: #764ba2;
+            --success: #2ecc71;
+            --danger: #e74c3c;
+            --warning: #f39c12;
+            --dark: #2c3e50;
+            --light: #ecf0f1;
+        }
+
+        body {
+            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+        }
+
+        .header {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            margin-bottom: 20px;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .profile-section {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .avatar {
+            width: 60px;
+            height: 60px;
+            border-radius: 50%;
+            background: var(--primary);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 24px;
+            font-weight: bold;
+        }
+
+        .user-info h2 {
+            color: var(--dark);
+            margin-bottom: 5px;
+        }
+
+        .balance-card {
+            background: linear-gradient(135deg, var(--warning), var(--danger));
+            color: white;
+            padding: 20px;
+            border-radius: 12px;
+            text-align: center;
+            min-width: 200px;
+        }
+
+        .balance-amount {
+            font-size: 32px;
+            font-weight: bold;
+            margin: 10px 0;
+        }
+
+        .games-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+            gap: 20px;
+            margin-bottom: 20px;
+        }
+
+        .game-card {
+            background: rgba(255, 255, 255, 0.95);
+            border-radius: 15px;
+            padding: 20px;
+            text-align: center;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.1);
+            transition: transform 0.3s, box-shadow 0.3s;
+            cursor: pointer;
+        }
+
+        .game-card:hover {
+            transform: translateY(-5px);
+            box-shadow: 0 10px 25px rgba(0,0,0,0.2);
+        }
+
+        .game-icon {
+            font-size: 48px;
+            margin-bottom: 15px;
+        }
+
+        .game-title {
+            font-size: 20px;
+            color: var(--dark);
+            margin-bottom: 10px;
+        }
+
+        .game-description {
+            color: #7f8c8d;
+            margin-bottom: 15px;
+            font-size: 14px;
+        }
+
+        .play-btn {
+            background: var(--primary);
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .play-btn:hover {
+            background: var(--secondary);
+        }
+
+        .admin-panel {
+            background: rgba(255, 255, 255, 0.95);
+            padding: 20px;
+            border-radius: 15px;
+            margin-top: 20px;
+        }
+
+        .admin-title {
+            color: var(--dark);
+            margin-bottom: 15px;
+            text-align: center;
+        }
+
+        .admin-controls {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 15px;
+        }
+
+        .admin-input {
+            padding: 12px;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 100%;
+        }
+
+        .admin-btn {
+            background: var(--success);
+            color: white;
+            border: none;
+            padding: 12px 20px;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: background 0.3s;
+        }
+
+        .admin-btn:hover {
+            background: #27ae60;
+        }
+
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.8);
+            z-index: 1000;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .modal-content {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 500px;
+            width: 90%;
+            text-align: center;
+        }
+
+        .hidden {
+            display: none;
+        }
+
+        .login-form {
+            background: white;
+            padding: 30px;
+            border-radius: 15px;
+            max-width: 400px;
+            margin: 100px auto;
+            text-align: center;
+        }
+
+        .form-input {
+            width: 100%;
+            padding: 12px;
+            margin: 10px 0;
+            border: 2px solid #ddd;
+            border-radius: 8px;
+            font-size: 16px;
+        }
+
+        .form-btn {
+            width: 100%;
+            padding: 12px;
+            background: var(--primary);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            margin: 10px 0;
+        }
+
+        .notification {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 20px;
+            background: var(--success);
+            color: white;
+            border-radius: 8px;
+            box-shadow: 0 5px 15px rgba(0,0,0,0.2);
+            z-index: 1001;
+        }
+    </style>
+</head>
+<body>
+    <!-- شاشة الدخول -->
+    <div id="loginScreen" class="login-form">
+        <h2>🎮 نظام الألعاب المتكامل</h2>
+        <p style="color: #7f8c8d; margin: 20px 0;">سجل الدخول للوصول إلى الألعاب</p>
+        
+        <input type="text" id="usernameInput" class="form-input" placeholder="اسم المستخدم">
+        <input type="email" id="emailInput" class="form-input" placeholder="البريد الإلكتروني">
+        
+        <button onclick="login()" class="form-btn">🚀 بدء اللعب</button>
+        <button onclick="adminLogin()" class="form-btn" style="background: var(--dark);">👨‍💼 دخول المدير</button>
+    </div>
+
+    <!-- الواجهة الرئيسية -->
+    <div id="mainApp" class="hidden">
+        <div class="container">
+            <!-- الهيدر -->
+            <div class="header">
+                <div class="profile-section">
+                    <div class="avatar" id="userAvatar">U</div>
+                    <div class="user-info">
+                        <h2 id="userName">مستخدم</h2>
+                        <p id="userEmail">user@example.com</p>
+                    </div>
+                </div>
+                
+                <div class="balance-card">
+                    <div>رصيدك الحالي</div>
+                    <div class="balance-amount" id="currentBalance">1,000</div>
+                    <div>نقطة</div>
+                </div>
+            </div>
+
+            <!-- شبكة الألعاب -->
+            <div class="games-grid" id="gamesGrid">
+                <!-- سيتم ملء الألعاب dynamically -->
+            </div>
+
+            <!-- لوحة التحكم للمدير -->
+            <div id="adminPanel" class="admin-panel hidden">
+                <h2 class="admin-title">👨‍💼 لوحة تحكم المدير</h2>
+                <div class="admin-controls">
+                    <input type="text" id="targetUser" class="admin-input" placeholder="معرف المستخدم الهدف">
+                    <input type="number" id="pointsAmount" class="admin-input" placeholder="عدد النقاط">
+                    <button onclick="addPointsToUser()" class="admin-btn">➕ إضافة نقاط</button>
+                    <button onclick="viewAllUsers()" class="admin-btn">👥 عرض جميع المستخدمين</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- نافذة اللعبة -->
+    <div id="gameModal" class="modal">
+        <div class="modal-content">
+            <h2 id="gameModalTitle">لعبة</h2>
+            <div id="gameModalContent">
+                <!-- محتوى اللعبة سيظهر هنا -->
+            </div>
+            <button onclick="closeGame()" style="margin-top: 20px; padding: 10px 20px; background: var(--danger); color: white; border: none; border-radius: 8px; cursor: pointer;">
+                إغلاق
+            </button>
+        </div>
+    </div>
+
+    <script>
+        // تكوين Firebase - استخدم التكوين الخاص بك
+        const firebaseConfig = {
+            apiKey: "AIzaSyBO78OiK_3NQNjdCZU6vWjHZflueq5PRFU",
+            authDomain: "gmez-42611.firebaseapp.com",
+            projectId: "gmez-42611",
+            storageBucket: "gmez-42611.firebasestorage.app",
+            messagingSenderId: "975524843465",
+            appId: "1:975524843465:web:b700fef5ddb96575d66218",
+            measurementId: "G-8EJ4D5TT12"
+        };
+
+        // تهيئة Firebase
+        firebase.initializeApp(firebaseConfig);
+        const db = firebase.firestore();
+        const auth = firebase.auth();
+
+        // بيانات المستخدم الحالي
+        let currentUser = null;
+
+        // قائمة الألعاب
+        const games = [
+            {
+                id: 1,
+                name: "🎰 سلوتس الحظ",
+                description: "اختر حظك واربح جوائز كبيرة",
+                cost: 10,
+                icon: "🎰"
+            },
+            {
+                id: 2,
+                name: "🎯 الرماية",
+                description: "اصوب على الهدف واربح النقاط",
+                cost: 5,
+                icon: "🎯"
+            },
+            {
+                id: 3,
+                name: "🎮 سباق السيارات",
+                description: "تحدي السرعة والمرونة",
+                cost: 15,
+                icon: "🏎️"
+            },
+            {
+                id: 4,
+                name: "♠️ البلاك جاك",
+                description: "تحدي الذكاء والتركيز",
+                cost: 20,
+                icon: "♠️"
+            },
+            {
+                id: 5,
+                name: "🎲 طاولة الزهر",
+                description: "العبة الحظ والتوقيت",
+                cost: 8,
+                icon: "🎲"
+            },
+            {
+                id: 6,
+                name: "🧩 الألغاز",
+                description: "اختبر ذكاءك مع الألغاز",
+                cost: 5,
+                icon: "🧩"
+            },
+            {
+                id: 7,
+                name: "🏀 كرة السلة",
+                description: "اصوب واربح النقاط",
+                cost: 7,
+                icon: "🏀"
+            },
+            {
+                id: 8,
+                name: "🎳 البولينج",
+                description: "اضرب كل العصي واربح",
+                cost: 12,
+                icon: "🎳"
+            },
+            {
+                id: 9,
+                name: "⚽ penalty",
+                description: "سدد بركلات الترجيح",
+                cost: 6,
+                icon: "⚽"
+            },
+            {
+                id: 10,
+                name: "🎪 العاب السيرك",
+                description: "تحديات متنوعة ومثيرة",
+                cost: 25,
+                icon: "🎪"
+            }
+        ];
+
+        // دالة الدخول
+        function login() {
+            const username = document.getElementById('usernameInput').value;
+            const email = document.getElementById('emailInput').value;
+            
+            if (!username || !email) {
+                showNotification('⚠️ يرجى ملء جميع الحقول', 'warning');
+                return;
+            }
+
+            // إنشاء مستخدم جديد أو تسجيل الدخول
+            auth.createUserWithEmailAndPassword(email, 'default123')
+                .then((userCredential) => {
+                    const user = userCredential.user;
+                    currentUser = {
+                        uid: user.uid,
+                        username: username,
+                        email: email,
+                        balance: 1000,
+                        joinDate: new Date().toISOString()
+                    };
+                    
+                    // حفظ بيانات المستخدم في Firestore
+                    return db.collection('users').doc(user.uid).set(currentUser);
+                })
+                .then(() => {
+                    showMainApp();
+                    showNotification('🎉 تم تسجيل الدخول بنجاح!', 'success');
+                })
+                .catch((error) => {
+                    // إذا كان المستخدم موجوداً مسبقاً
+                    auth.signInWithEmailAndPassword(email, 'default123')
+                        .then((userCredential) => {
+                            const user = userCredential.user;
+                            return db.collection('users').doc(user.uid).get();
+                        })
+                        .then((doc) => {
+                            if (doc.exists) {
+                                currentUser = doc.data();
+                                showMainApp();
+                                showNotification('👋 أهلاً بعودتك!', 'success');
+                            }
+                        })
+                        .catch((error) => {
+                            showNotification('❌ خطأ في التسجيل', 'error');
+                        });
+                });
+        }
+
+        // دالة دخول المدير
+        function adminLogin() {
+            const email = document.getElementById('emailInput').value;
+            if (email === 'admin@game.com') {
+                currentUser = {
+                    uid: 'admin',
+                    username: 'المدير',
+                    email: email,
+                    isAdmin: true
+                };
+                showMainApp();
+                document.getElementById('adminPanel').classList.remove('hidden');
+                showNotification('👨‍💼 وضع المدير مفعل', 'success');
+            }
+        }
+
+        // عرض الواجهة الرئيسية
+        function showMainApp() {
+            document.getElementById('loginScreen').classList.add('hidden');
+            document.getElementById('mainApp').classList.remove('hidden');
+            
+            // تحديث بيانات المستخدم
+            document.getElementById('userName').textContent = currentUser.username;
+            document.getElementById('userEmail').textContent = currentUser.email;
+            document.getElementById('userAvatar').textContent = currentUser.username.charAt(0);
+            
+            if (currentUser.balance) {
+                document.getElementById('currentBalance').textContent = currentUser.balance.toLocaleString();
+            }
+            
+            // عرض الألعاب
+            displayGames();
+        }
+
+        // عرض الألعاب
+        function displayGames() {
+            const gamesGrid = document.getElementById('gamesGrid');
+            gamesGrid.innerHTML = '';
+            
+            games.forEach(game => {
+                const gameCard = document.createElement('div');
+                gameCard.className = 'game-card';
+                gameCard.innerHTML = `
+                    <div class="game-icon">${game.icon}</div>
+                    <div class="game-title">${game.name}</div>
+                    <div class="game-description">${game.description}</div>
+                    <div style="color: var(--warning); margin: 10px 0;">تكلفة اللعب: ${game.cost} نقطة</div>
+                    <button class="play-btn" onclick="playGame(${game.id})">العب الآن</button>
+                `;
+                gamesGrid.appendChild(gameCard);
+            });
+        }
+
+        // تشغيل اللعبة
+        function playGame(gameId) {
+            const game = games.find(g => g.id === gameId);
+            
+            if (!game) return;
+            
+            if (currentUser.balance < game.cost) {
+                showNotification('❌ رصيدك غير كافٍ لهذه اللعبة', 'error');
+                return;
+            }
+            
+            // خصم تكلفة اللعبة
+            currentUser.balance -= game.cost;
+            updateUserBalance();
+            
+            // عرض اللعبة في النافذة
+            document.getElementById('gameModalTitle').textContent = game.name;
+            document.getElementById('gameModalContent').innerHTML = `
+                <div style="text-align: center; padding: 20px;">
+                    <div style="font-size: 48px; margin: 20px 0;">${game.icon}</div>
+                    <h3>${game.name}</h3>
+                    <p>${game.description}</p>
+                    <p style="color: var(--warning);">تم خصم ${game.cost} نقطة من رصيدك</p>
+                    <div style="margin: 20px 0;">
+                        <button onclick="simulateWin('${game.name}')" style="padding: 10px 20px; background: var(--success); color: white; border: none; border-radius: 8px; margin: 5px; cursor: pointer;">
+                            فوز 🎉
+                        </button>
+                        <button onclick="simulateLose('${game.name}')" style="padding: 10px 20px; background: var(--danger); color: white; border: none; border-radius: 8px; margin: 5px; cursor: pointer;">
+                            خسارة 😞
+                        </button>
+                    </div>
+                </div>
+            `;
+            
+            document.getElementById('gameModal').style.display = 'flex';
+        }
+
+        // محاكاة الفوز
+        function simulateWin(gameName) {
+            const winAmount = Math.floor(Math.random() * 50) + 20;
+            currentUser.balance += winAmount;
+            updateUserBalance();
+            showNotification(`🎉 مبروك! ربحت ${winAmount} نقطة في ${gameName}`, 'success');
+            closeGame();
+        }
+
+        // محاكاة الخسارة
+        function simulateLose(gameName) {
+            showNotification(`😞 خسارة في ${gameName}، حاول مرة أخرى!`, 'error');
+            closeGame();
+        }
+
+        // إغلاق اللعبة
+        function closeGame() {
+            document.getElementById('gameModal').style.display = 'none';
+        }
+
+        // تحديث رصيد المستخدم
+        function updateUserBalance() {
+            document.getElementById('currentBalance').textContent = currentUser.balance.toLocaleString();
+            
+            // تحديث في Firebase
+            if (currentUser.uid && currentUser.uid !== 'admin') {
+                db.collection('users').doc(currentUser.uid).update({
+                    balance: currentUser.balance
+                });
+            }
+        }
+
+        // إضافة نقاط من المدير
+        function addPointsToUser() {
+            if (!currentUser.isAdmin) return;
+            
+            const targetUserId = document.getElementById('targetUser').value;
+            const points = parseInt(document.getElementById('pointsAmount').value);
+            
+            if (!targetUserId || !points) {
+                showNotification('⚠️ يرجى ملء جميع الحقول', 'warning');
+                return;
+            }
+            
+            db.collection('users').doc(targetUserId).get()
+                .then((doc) => {
+                    if (doc.exists) {
+                        const userData = doc.data();
+                        const newBalance = (userData.balance || 0) + points;
+                        
+                        return db.collection('users').doc(targetUserId).update({
+                            balance: newBalance
+                        });
+                    } else {
+                        showNotification('❌ المستخدم غير موجود', 'error');
+                    }
+                })
+                .then(() => {
+                    showNotification(`✅ تم إضافة ${points} نقطة للمستخدم`, 'success');
+                    document.getElementById('targetUser').value = '';
+                    document.getElementById('pointsAmount').value = '';
+                })
+                .catch((error) => {
+                    showNotification('❌ خطأ في إضافة النقاط', 'error');
+                });
+        }
+
+        // عرض جميع المستخدمين
+        function viewAllUsers() {
+            db.collection('users').get()
+                .then((querySnapshot) => {
+                    let usersList = '<h3>قائمة المستخدمين</h3>';
+                    querySnapshot.forEach((doc) => {
+                        const user = doc.data();
+                        usersList += `
+                            <div style="background: #f8f9fa; padding: 10px; margin: 5px 0; border-radius: 5px;">
+                                <strong>${user.username}</strong> - ${user.email}<br>
+                                الرصيد: ${user.balance || 0} نقطة<br>
+                                المعرف: ${doc.id}
+                            </div>
+                        `;
+                    });
+                    
+                    document.getElementById('gameModalTitle').textContent = '👥 جميع المستخدمين';
+                    document.getElementById('gameModalContent').innerHTML = usersList;
+                    document.getElementById('gameModal').style.display = 'flex';
+                });
+        }
+
+        // عرض الإشعارات
+        function showNotification(message, type) {
+            const notification = document.createElement('div');
+            notification.className = 'notification';
+            notification.textContent = message;
+            notification.style.background = type === 'success' ? 'var(--success)' : 
+                                          type === 'error' ? 'var(--danger)' : 'var(--warning)';
+            
+            document.body.appendChild(notification);
+            
+            setTimeout(() => {
+                notification.remove();
+            }, 3000);
+        }
+
+        // التهيئة الأولية
+        document.addEventListener('DOMContentLoaded', function() {
+            // محاولة الدخول التلقائي إذا كان المستخدم مسجلاً
+            auth.onAuthStateChanged((user) => {
+                if (user) {
+                    db.collection('users').doc(user.uid).get()
+                        .then((doc) => {
+                            if (doc.exists) {
+                                currentUser = doc.data();
+                                showMainApp();
+                            }
+                        });
+                }
+            });
+        });
+    </script>
+</body>
+</html>
